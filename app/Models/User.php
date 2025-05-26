@@ -2,31 +2,32 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
      *
-     * @var list<string>
+     * @var array<int, string>
      */
     protected $fillable = [
         'name',
         'email',
         'password',
+        'profile_picture',
     ];
 
     /**
      * The attributes that should be hidden for serialization.
      *
-     * @var list<string>
+     * @var array<int, string>
      */
     protected $hidden = [
         'password',
@@ -34,15 +35,68 @@ class User extends Authenticatable
     ];
 
     /**
-     * Get the attributes that should be cast.
+     * The attributes that should be cast.
      *
-     * @return array<string, string>
+     * @var array<string, string>
      */
-    protected function casts(): array
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+    ];
+
+    /**
+     * Get the reviews for the user.
+     */
+    public function reviews()
     {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
+        return $this->hasMany(Review::class);
+    }
+
+    /**
+     * Get the bookshelves for the user.
+     */
+    public function bookshelves()
+    {
+        return $this->hasMany(Bookshelf::class);
+    }
+
+    /**
+     * Get the books in the user's bookshelves.
+     */
+    public function books()
+    {
+        return $this->belongsToMany(Book::class, 'bookshelves')
+            ->withPivot('shelf_type')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get books that the user wants to read.
+     */
+    public function wantToReadBooks()
+    {
+        return $this->belongsToMany(Book::class, 'bookshelves')
+            ->wherePivot('shelf_type', 'want_to_read')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get books that the user is currently reading.
+     */
+    public function currentlyReadingBooks()
+    {
+        return $this->belongsToMany(Book::class, 'bookshelves')
+            ->wherePivot('shelf_type', 'currently_reading')
+            ->withTimestamps();
+    }
+
+    /**
+     * Get books that the user has read.
+     */
+    public function readBooks()
+    {
+        return $this->belongsToMany(Book::class, 'bookshelves')
+            ->wherePivot('shelf_type', 'read')
+            ->withTimestamps();
     }
 }
